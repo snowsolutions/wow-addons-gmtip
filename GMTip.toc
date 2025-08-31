@@ -1,0 +1,9 @@
+## Interface: 30300
+## Title: GMTip
+## Notes: Show ItemID in tooltip + Create Item UI + Preset Templates
+## Author: You
+## Version: 3.0
+## SavedVariables: GMTipTemplates
+
+GMTip.lua
+GMTipTemplate.lua
