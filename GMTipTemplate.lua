@@ -4,7 +4,7 @@
 GMTipTemplates = GMTipTemplates or {}
 
 -- Popup danh sách template
-local templatePopup = CreateFrame("Frame", "GMTipTemplatePopup", UIParent)
+local templatePopup = CreateFrame("Frame", "GMTipTemplatePopup", UIParent, "BackdropTemplate")
 templatePopup:SetSize(400, 300)
 templatePopup:SetPoint("CENTER")
 templatePopup:SetBackdrop({
@@ -19,7 +19,7 @@ templatePopup:Hide()
 -- ScrollFrame
 local scrollFrame = CreateFrame("ScrollFrame", "GMTipTemplateScrollFrame", templatePopup, "UIPanelScrollFrameTemplate")
 scrollFrame:SetPoint("TOPLEFT", 10, -10)
-scrollFrame:SetPoint("BOTTOMRIGHT", -30, 10)
+scrollFrame:SetPoint("BOTTOMRIGHT", -30, 40) -- chừa chỗ cho nút Close
 
 -- Nội dung trong scroll
 local content = CreateFrame("Frame", "GMTipTemplateContent", scrollFrame)
@@ -41,10 +41,11 @@ local function UpdateTemplateList()
         txt:SetPoint("LEFT")
         txt:SetText(name)
 
+        -- Nút Get
         local getBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
         getBtn:SetSize(60, 20)
         getBtn:SetText("Get")
-        getBtn:SetPoint("RIGHT", -55, 0)
+        getBtn:SetPoint("RIGHT", -65, 0)
         getBtn:SetScript("OnClick", function()
             for entry in string.gmatch(list, '([^,]+)') do
                 local id, count = string.match(entry, '^(%d+)x(%d+)$')
@@ -57,18 +58,26 @@ local function UpdateTemplateList()
             end
         end)
 
+        -- Nút Del
         local delBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
         delBtn:SetSize(50, 20)
         delBtn:SetText("Del")
-        delBtn:SetPoint("RIGHT")
+        delBtn:SetPoint("RIGHT", -5, 0)
         delBtn:SetScript("OnClick", function()
             GMTipTemplates[name] = nil
             print("|cffff0000GMTip: Deleted template '"..name.."'")
             UpdateTemplateList()
         end)
     end
-    content:SetHeight(math.abs(offset)) -- chỉnh chiều cao content cho scrollbar chạy
+    content:SetHeight(math.abs(offset))
 end
+
+-- Nút Close
+local closeBtn = CreateFrame("Button", nil, templatePopup, "UIPanelButtonTemplate")
+closeBtn:SetSize(80, 22)
+closeBtn:SetText("Close")
+closeBtn:SetPoint("BOTTOM", 0, 10)
+closeBtn:SetScript("OnClick", function() templatePopup:Hide() end)
 
 -- Nút Items Template (draggable)
 GMTipTemplateBtn = CreateFrame("Button", "GMTipTemplateBtn", UIParent, "UIPanelButtonTemplate")

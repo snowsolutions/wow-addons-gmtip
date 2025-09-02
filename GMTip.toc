@@ -1,8 +1,8 @@
-## Interface: 30300
+## Interface: 110200
 ## Title: GMTip
-## Notes: Show ItemID in tooltip + Create Item UI + Preset Templates
-## Author: You
-## Version: 3.0
+## Notes: Show ItemID/SpellID in tooltips and GM helper for TrinityCore
+## Author: YourName
+## Version: 1.0
 ## SavedVariables: GMTipTemplates
 
 GMTip.lua

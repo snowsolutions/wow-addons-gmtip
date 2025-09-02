@@ -4,35 +4,24 @@
 GMTipTemplates = GMTipTemplates or {}
 
 -- =========================
--- Tooltip: Show ItemID
+-- Tooltip: Show ItemID & SpellID (Retail 11.x)
 -- =========================
-local function AddItemID(tooltip)
-    local _, link = tooltip:GetItem()
-    if link then
-        local itemId = tonumber(string.match(link, "item:(%d+)"))
-        if itemId then
-            tooltip:AddLine("ItemID: " .. itemId, 0.5, 0.8, 1)
-        end
-    end
-end
-GameTooltip:HookScript("OnTooltipSetItem", AddItemID)
-ItemRefTooltip:HookScript("OnTooltipSetItem", AddItemID)
-
--- Add SpellID to tooltip in 3.3.5
-GameTooltip:HookScript("OnTooltipSetSpell", function(self)
-    local name, rank, spellID = self:GetSpell()
-    if spellID then
-        self:AddLine("Spell ID: "..spellID, 0.6, 0.8, 1)
-        self:Show()
+TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip, data)
+    if data and data.id then
+        tooltip:AddLine("ItemID: " .. data.id, 0.5, 0.8, 1)
     end
 end)
 
-
+TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, function(tooltip, data)
+    if data and data.id then
+        tooltip:AddLine("SpellID: " .. data.id, 0.6, 0.8, 1)
+    end
+end)
 
 -- =========================
 -- Create Item Popup
 -- =========================
-GMTipPopup = CreateFrame("Frame", "GMTipPopup", UIParent)
+GMTipPopup = CreateFrame("Frame", "GMTipPopup", UIParent, "BackdropTemplate")
 GMTipPopup:SetSize(430, 140)
 GMTipPopup:SetPoint("CENTER")
 GMTipPopup:SetBackdrop({
@@ -54,15 +43,36 @@ GMTipEditBox:SetAutoFocus(false)
 -- =========================
 local function AddItemsFromText(text)
     for entry in string.gmatch(text, '([^,]+)') do
-        local id, count = string.match(entry, '^(%d+)x(%d+)$')
-        if not id then id, count = string.match(entry, '^(%d+)$'), "1" end
-        if id then
-            for i=1, tonumber(count) do
-                SendChatMessage(".additem " .. id, "SAY")
+        entry = strtrim(entry)
+        if entry ~= "" then
+            -- Case 1: range 1000->1005
+            local fromID, toID = string.match(entry, '^(%d+)%-%>(%d+)$')
+            if fromID and toID then
+                fromID, toID = tonumber(fromID), tonumber(toID)
+                if fromID <= toID then
+                    for id = fromID, toID do
+                        SendChatMessage(".additem " .. id, "SAY")
+                    end
+                else
+                    for id = fromID, toID, -1 do
+                        SendChatMessage(".additem " .. id, "SAY")
+                    end
+                end
+
+            -- Case 2: id with count 1234x5
+            else
+                local id, count = string.match(entry, '^(%d+)x(%d+)$')
+                if not id then id, count = string.match(entry, '^(%d+)$'), "1" end
+                if id then
+                    for i=1, tonumber(count) do
+                        SendChatMessage(".additem " .. id, "SAY")
+                    end
+                end
             end
         end
     end
 end
+
 
 -- =========================
 -- Buttons in popup
@@ -93,7 +103,8 @@ saveOnlyBtn:SetScript("OnClick", function()
             button2 = "Cancel",
             hasEditBox = true,
             OnAccept = function(self)
-                local name = self.editBox:GetText()
+                local editBox = self.editBox or _G[self:GetName().."EditBox"]
+                local name = editBox and editBox:GetText()
                 if name and name ~= "" then
                     GMTipTemplates[name] = text
                     print("|cff00ff00GMTip: Saved template '"..name.."' (Save Only)")
@@ -101,7 +112,8 @@ saveOnlyBtn:SetScript("OnClick", function()
             end,
             timeout = 0,
             whileDead = true,
-            hideOnEscape = true
+            hideOnEscape = true,
+            preferredIndex = 3,
         }
         StaticPopup_Show("GMTIP_ENTER_TEMPLATE_NAME")
     end
@@ -123,7 +135,8 @@ saveAddBtn:SetScript("OnClick", function()
             button2 = "Cancel",
             hasEditBox = true,
             OnAccept = function(self)
-                local name = self.editBox:GetText()
+                local editBox = self.editBox or _G[self:GetName().."EditBox"]
+                local name = editBox and editBox:GetText()
                 if name and name ~= "" then
                     GMTipTemplates[name] = text
                     print("|cff00ff00GMTip: Saved template '"..name.."' (Save & Add)")
@@ -131,7 +144,8 @@ saveAddBtn:SetScript("OnClick", function()
             end,
             timeout = 0,
             whileDead = true,
-            hideOnEscape = true
+            hideOnEscape = true,
+            preferredIndex = 3,
         }
         StaticPopup_Show("GMTIP_ENTER_TEMPLATE_NAME")
     end
@@ -164,8 +178,10 @@ GMTipCreateBtn:SetScript("OnClick", function()
     GMTipEditBox:SetFocus()
 end)
 
+GMTipCreateBtn:Show()
+
 -- =========================
--- Alt+Click item ID
+-- Alt+Click item ID (stackable)
 -- =========================
 hooksecurefunc("HandleModifiedItemClick", function(link)
     if IsAltKeyDown() and link and GMTipEditBox and GMTipPopup:IsShown() then
@@ -191,6 +207,6 @@ hooksecurefunc("HandleModifiedItemClick", function(link)
         if not found then table.insert(entries, tostring(itemId)) end
         GMTipEditBox:SetText(table.concat(entries, ","))
         GMTipEditBox:SetFocus()
-        GMTipEditBox:SetCursorPosition(strlen(GMTipEditBox:GetText()))
+        GMTipEditBox:SetCursorPosition(string.len(GMTipEditBox:GetText()))
     end
 end)
